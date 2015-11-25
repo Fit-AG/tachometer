@@ -46,9 +46,10 @@ public class Tachometer {
             System.exit(1);
         }
 
-        LightSensor lightSensor = new LightSensor(SensorPort.S1);
-
         SequenceDetector sequenceDetector = new SequenceDetector(new AbstractDetector() {
+
+            LightSensor lightSensor = new LightSensor(SensorPort.S1);
+
             @Override
             public boolean isTriggered() {
                 //trigger when detected brightness higher than 50 (LightSensor measures between 0 and 100)
