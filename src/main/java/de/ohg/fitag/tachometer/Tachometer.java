@@ -2,6 +2,7 @@ package de.ohg.fitag.tachometer;
 
 
 import lejos.nxt.Button;
+import lejos.nxt.LCD;
 import lejos.nxt.LightSensor;
 import lejos.nxt.SensorPort;
 import lejos.pc.comm.NXTCommLogListener;
@@ -16,7 +17,8 @@ import java.util.Date;
  */
 public class Tachometer {
 
-    public final static float ROTATION_DISTANCE = 3.0f;
+    public final static float ROTATION_DISTANCE = 37.7f;
+    private static LightSensor lightSensor;
 
     public static void main(String[] args){
         System.out.println("------------------------------");
@@ -27,33 +29,31 @@ public class Tachometer {
          * Following code had not been tested in development environment due compatibility issues.
          */
 
-        //establish nxt connection
-        NXTConnector conn = new NXTConnector();
-        //log errors
-        conn.addLogListener(new NXTCommLogListener() {
-            public void logEvent(String message) {
-                System.out.println(message);
-            }
+        lightSensor = new LightSensor(SensorPort.S1);
+        System.out.println("Press ENTER to calibrate lightlevel LOW");
+        Button.ENTER.waitForPressAndRelease();
+        lightSensor.calibrateLow();
+        System.out.printf("LightSensor calibrated to %d%n", lightSensor.getLow());
 
-            public void logEvent(Throwable throwable) {
-                System.err.println(throwable.getMessage());
-            }
-        });
-        conn.setDebug(true);
-
-        if (!conn.connectTo()) {
-            System.err.println("Failed to connect");
-            System.exit(1);
-        }
+        System.out.println("Press ENTER to calibrate lightlevel HIGH");
+        Button.ENTER.waitForPressAndRelease();
+        lightSensor.calibrateHigh();
+        System.out.printf("LightSensor calibrated to %d%n", lightSensor.getHigh());
 
         SequenceDetector sequenceDetector = new SequenceDetector(new AbstractDetector() {
 
-            LightSensor lightSensor = new LightSensor(SensorPort.S1);
+            private boolean triggered = false;
 
             @Override
             public boolean isTriggered() {
                 //trigger when detected brightness higher than 50 (LightSensor measures between 0 and 100)
-                return lightSensor.readValue() > 50;
+                boolean lighten = Tachometer.getLightSensor().readValue() > 50;
+
+                boolean ret = lighten && !triggered;
+
+                this.triggered = lighten;
+
+                return ret;
             }
         });
 
@@ -67,8 +67,13 @@ public class Tachometer {
             Date timestamp = new Date();
 
             //Hard readable but formats for example to: "[22:30:15:306] Speed: 12.12cm/ms"
-            System.out.printf("[%s] Speed: %.2fcm/ms%n", dateFormat.format(timestamp), speed);
+            System.out.printf("[%s] Speed: %.2fkm/h%n", dateFormat.format(timestamp), speed*3,6);
+            //System.out.println("Speed: " + speed + " cm/ms");
         }
+        System.out.println("Event loop cancelled.");
     }
 
+    public static LightSensor getLightSensor(){
+        return lightSensor;
+    }
 }
