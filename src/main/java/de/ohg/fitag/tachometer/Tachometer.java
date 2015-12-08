@@ -1,10 +1,7 @@
 package de.ohg.fitag.tachometer;
 
 
-import lejos.nxt.Button;
-import lejos.nxt.LCD;
-import lejos.nxt.LightSensor;
-import lejos.nxt.SensorPort;
+import lejos.nxt.*;
 import lejos.pc.comm.NXTCommLogListener;
 import lejos.pc.comm.NXTConnector;
 
@@ -42,18 +39,18 @@ public class Tachometer {
 
         SequenceDetector sequenceDetector = new SequenceDetector(new AbstractDetector() {
 
-            private boolean triggered = false;
+            private boolean wasTriggered = false;
 
             @Override
             public boolean isTriggered() {
                 //trigger when detected brightness higher than 50 (LightSensor measures between 0 and 100)
-                boolean lighten = Tachometer.getLightSensor().readValue() > 50;
+                boolean lighted = Tachometer.getLightSensor().readValue() > 50;
 
-                boolean ret = lighten && !triggered;
+                boolean isTriggered = lighted && !this.wasTriggered;
 
-                this.triggered = lighten;
+                this.wasTriggered = lighted;
 
-                return ret;
+                return isTriggered;
             }
         });
 
@@ -62,15 +59,17 @@ public class Tachometer {
 
         //main flow
         while(!Button.ENTER.isDown()){
-            //speed is time through distance
-            float speed = sequenceDetector.detectSequence() / ROTATION_DISTANCE;
+            //speed is distance through time
+            float sequence = sequenceDetector.detectSequence();
+            float speed = ROTATION_DISTANCE / sequence;
             Date timestamp = new Date();
 
-            //Hard readable but formats for example to: "[22:30:15:306] Speed: 12.12cm/ms"
-            System.out.printf("[%s] Speed: %.2fkm/h%n", dateFormat.format(timestamp), speed*3,6);
-            //System.out.println("Speed: " + speed + " cm/ms");
+            //Hard readable but formats for example to: "[22:30:15:306] Frequency: 13.23Hz, Speed: 12.12cm/ms"
+
+            System.out.printf("[%s] Frequency:  %.2fHz, Speed: %.2fcm/s%n ", dateFormat.format(timestamp), 1/sequence*1000, speed*1000);
         }
         System.out.println("Event loop cancelled.");
+        NXT.exit(0);
     }
 
     public static LightSensor getLightSensor(){
