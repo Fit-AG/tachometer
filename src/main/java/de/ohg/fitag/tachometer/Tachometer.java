@@ -59,14 +59,16 @@ public class Tachometer {
 
         //main flow
         while(!Button.ENTER.isDown()){
+            float sequence = sequenceDetector.detectSequence()/1000.0f;
             //speed is distance through time
-            float sequence = sequenceDetector.detectSequence();
             float speed = ROTATION_DISTANCE / sequence;
+            float frequency = 1.0f/sequence;
             Date timestamp = new Date();
 
             //Hard readable but formats for example to: "[22:30:15:306] Frequency: 13.23Hz, Speed: 12.12cm/ms"
 
-            System.out.printf("[%s] Frequency:  %.2fHz, Speed: %.2fcm/s%n ", dateFormat.format(timestamp), 1/sequence*1000, speed*1000);
+            System.out.printf("[%s] Sequence: %.4ss, Frequency:  %.4fHz, Speed: %.4fcm/s%n", dateFormat.format(timestamp),
+                    sequence, frequency, speed);
         }
         System.out.println("Event loop cancelled.");
         NXT.exit(0);
