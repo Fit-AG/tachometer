@@ -79,7 +79,7 @@ public class Tachometer {
                     sequence, frequency, speed);
             Document segment = new Document();
             segment.append("timeStamp", timestamp);
-            segment.append("data", Arrays.asList(new Document().append("speed", speed).append("frequency", frequency)));
+            segment.append("data", new Document().append("speed", speed).append("frequency", frequency));
             measurements.updateOne(new Document("_id", measurement.get("_id")), new Document("$push", new Document("segments", segment)));
         }
         measurements.updateOne(new Document("_id", measurement.get("_id")), new Document("$set", new Document("endTime",  System.currentTimeMillis())));
