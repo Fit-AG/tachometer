@@ -1,12 +1,14 @@
 package de.ohg.fitag.tachometer;
 
 
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
 import lejos.nxt.*;
-import lejos.pc.comm.NXTCommLogListener;
-import lejos.pc.comm.NXTConnector;
+import org.bson.Document;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 
 /**
@@ -22,9 +24,9 @@ public class Tachometer {
         System.out.println("SequenceDetection using leJOS");
         System.out.println("------------------------------");
 
-        /**
-         * Following code had not been tested in development environment due compatibility issues.
-         */
+        System.out.println("Trying to connect to localhost:3001");
+        MongoClient mongoClient = new MongoClient("localhost", 3001);
+        MongoCollection measurements = mongoClient.getDatabase("meteor").getCollection("measurements");
 
         lightSensor = new LightSensor(SensorPort.S1);
         System.out.println("Press ENTER to calibrate lightlevel LOW");
@@ -57,6 +59,12 @@ public class Tachometer {
         //format timestamps to a detailed format with hours, minutes, seconds and milliseconds
         DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss.SSS");
 
+        Document measurement = new Document();
+        measurement.append("description", "2 Avenue");
+        measurement.append("startTime", System.currentTimeMillis());
+        measurements.insertOne(measurement);
+        System.out.println(measurement.toJson());
+
         //main flow
         while(!Button.ENTER.isDown()){
             float sequence = sequenceDetector.detectSequence()/1000.0f;
@@ -69,7 +77,13 @@ public class Tachometer {
 
             System.out.printf("[%s] Sequence: %.4ss, Frequency:  %.4fHz, Speed: %.4fcm/s%n", dateFormat.format(timestamp),
                     sequence, frequency, speed);
+            Document segment = new Document();
+            segment.append("timeStamp", timestamp);
+            segment.append("data", Arrays.asList(new Document().append("speed", speed).append("frequency", frequency)));
+            measurements.updateOne(new Document("_id", measurement.get("_id")), new Document("$push", new Document("segments", segment)));
         }
+        measurements.updateOne(new Document("_id", measurement.get("_id")), new Document("$set", new Document("endTime",  System.currentTimeMillis())));
+
         System.out.println("Event loop cancelled.");
         NXT.exit(0);
     }
